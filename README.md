@@ -44,12 +44,17 @@ This program outputs three log files.
 | report\_log | A TSV file that records the best individual for each loop. | `%Y%m%d%H%M%S%f_report.dat` |
 | detail\_log | A TSV file that records the best individual for each generation. | `%Y%m%d%H%M%S%f_detail.dat` |
 
-This histogram was created using two report\_log files. CAM report\_log is from `python main.py`, NoCAM report\_log from `python main.py --no_cam`.
+The following histogram was created using two report\_log files. The CAM report\_log is from `python main.py --loop 300` and the NoCAM report\_log from `python main.py --loop 300 --no_cam`.
 
 ![](screenshots/20211112_MT10x10_n100_DEAP.png)
+
+The following line charts shows the percentiles of the best makespan for each generation.  These were created by using detail\_log file. The CAM detail\_log is from `python main.py --loop 300` and the NoCAM detail\_log from `python main.py --loop 300 --no_cam`.
+
+![](screenshots/20211112_Percentile_CAM_MT10x10_n100_DEAP.png)
+
+![](screenshots/20211112_Percentile_NoCAM_MT10x10_n100_DEAP.png)
 
 ## Author
 
 <shigeta@technoface.co.jp>
-
 
