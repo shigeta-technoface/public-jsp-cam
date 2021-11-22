@@ -162,7 +162,7 @@ def test ( seed, population_sz, loop, is_test, no_cam ) :
 		best_gen, best_fit, best_ind = do_loop ( seed + loop_idx, population_sz, is_test, no_cam )
 		# finally
 		report_log.info ( '\t'.join ( ( '%d', '%d', '%d', '%s' ) )
-										% ( loop_idx, best_fit, best_gen, best_ind.tolist() ) )
+										% ( seed + loop_idx, best_fit, best_gen, best_ind.tolist() ) )
 		best_fits.append ( best_fit )
 		best_inds.append ( best_ind )
 	# 全ループでのベスト個体を選出
@@ -214,7 +214,7 @@ def parseArg() :
 
 	parser = argparse.ArgumentParser ( description='平野の方法でJSPを解きます' )
 	# input data
-	parser.add_argument ( '--seed', default=0, help='the number of radom seed.' + defint )
+	parser.add_argument ( '--seed', default=0, type=int, help='the number of radom seed.' + defint )
 	parser.add_argument ( '--population', default=100, type=int
 			, help='the number of individuals in one population.' + defint )
 	parser.add_argument ( '--loop', default=1, type=int, help='Loop count.' + defint )
