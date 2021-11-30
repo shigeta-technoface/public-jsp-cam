@@ -79,6 +79,87 @@ def initialize ( is_test, no_cam ) :
 		toolbox.register ( "getArgWorst", schedule.getArgWorstCAM )
 	return toolbox, jmTable
 
+### report_log, detail_log
+def sort_log( fname, func ) :
+	""" detail_logをseed, generationの昇順に並び替える """
+	import csv
+	with open ( fname ) as f :
+		reader = csv.reader ( f, delimiter='\t' )
+		header = next(reader)
+		rows = sorted ( reader, key=func )
+	with open ( fname, 'w' ) as f :
+		writer = csv.writer ( f, delimiter='\t' )
+		writer.writerow ( header )
+		writer.writerows ( rows )
+
+def write_detail_header ( no_cam ) :
+	""" detail_logのヘッダ部を保存する """
+	from logger import detail_log
+	header = [ 'seed', 'generation', 'best_fit', 'best_gen', 'Min', 'Max', 'Avg', 'Std', ]
+	if no_cam : pass
+	else :
+		# 各クラスターの大きさと最大クラスターと最小クラスターとの差分を記録（40を境に置換処理が変わるため）
+		header += [ 'C%02d' % idx for idx in range ( 10 ) ] + [ 'Cdiff' ]
+	detail_log.info ( '\t'.join ( header ) )
+
+def write_detail_body ( pop, best_ind, best_gen, seed, cur_gen, no_cam ) :
+	""" detail_logに統計値を記録する """
+	from logger import detail_log
+	# 統計値計算
+	fits = np.array ( [ ind.fitness.values[0] for ind in pop ] )
+	row = [ seed, cur_gen, best_ind.fitness.values[0], best_gen, fits.min(), fits.max(), fits.mean(), fits.std() ]
+	if no_cam : pass
+	else :
+		clist = schedule.getClusterList ( pop )
+		row += clist + [ max(clist)-min(clist) ]
+	detail_log.info ( '\t'.join ( [ str(x) for x in row ] ) )
+	return
+
+def sort_detail_log() :
+	""" detail_logをseed, generationの昇順に並び替える """
+	import csv
+	from logger import detail_log
+	# detail_logのファイル名を取得
+	fname = detail_log.handlers[0].baseFilename
+	sort_log ( fname, lambda r: ( int ( r [ 0 ] ), int ( r [ 1 ] ) ) )
+
+def write_report_header() :
+	""" report_logのヘッダ部を保存する """
+	from logger import report_log
+	report_log.info ( '\t'.join ( ( 'seed', 'best_fit', 'best_gen', 'best_ind' ) ) )
+
+def write_report_body ( seed, best_gen, best_fit, best_ind ) :
+	""" report_logのボディ部を保存する """
+	from logger import report_log
+	report_log.info ( '\t'.join ( ( '%d', '%d', '%d', '%s' ) )
+									% ( seed, best_fit, best_gen, best_ind.tolist() ) )
+
+def sort_report_log() :
+	""" report_logをseedの昇順に並び替える """
+	import csv
+	from logger import report_log
+	# report_logのファイル名を取得
+	fname = report_log.handlers[0].baseFilename
+	sort_log ( fname, lambda r: int ( r [ 0 ] ) )
+
+def write_best_of_loop ( best_fits, best_inds ) :
+	""" 全ループでのベスト個体を記録する """
+	from logger import root_log
+	bf = np.array ( best_fits )
+	root_log.info ( "Min:%s Max:%s Avg:%s Std:%s" % ( bf.min(),bf.max(),bf.mean(),bf.std() ) )
+	best_ind = best_inds [ np.argmin ( bf ) ]
+	root_log.info ( "Best individual: %s" % best_ind.tolist() )
+	root_log.info ( "\n"+"\n".join ( schedule.toStrAry( schedule.getGantt ( gJmTable, best_ind ), sep='' ) ) )
+
+def write_line_profile ( prof ) :
+	""" line profile結果を記録する """
+	import io
+	from logger import root_log
+	with io.StringIO() as bs :
+		prof.print_stats ( stream=bs, output_unit=0.001 )
+		root_log.info ( '\n' + bs.getvalue() )
+
+### main process
 def test2 ( population ) :
 	""" populationに遺伝的操作を施す """
 	# 交叉確率、突然変異確率
@@ -113,25 +194,21 @@ def do_generation ( population ) :
 		test2 ( population )
 	return population
 
-def do_loop ( seed, population_sz, is_test, no_cam ) :
-	from logger import detail_log
+def do_loop ( args ) :
 	global gToolbox
+	seed, population_sz, is_test, no_cam = args
+	random.seed ( seed )
 	# 初期世代を取得
 	pop = gToolbox.population ( n=population_sz )
 	# 初期世代の適応度を取得し個体にセット
-	fitnesses = list ( gToolbox.map ( gToolbox.evaluate, pop ) )
+	fitnesses = list ( map ( gToolbox.evaluate, pop ) )
 	for ind, fit in zip ( pop, fitnesses ) :
 		ind.fitness.values = fit
-	# detail_logのヘッダ部書き出し
-	header = [ 'seed', 'generation', 'best_fit', 'best_gen', 'Min', 'Max', 'Avg', 'Std', ]
-	if no_cam : pass
-	else :
-		# 各クラスターの大きさと最大クラスターと最小クラスターとの差分を記録（40を境に置換処理が変わるため）
-		header += [ 'C%02d' % idx for idx in range ( 10 ) ] + [ 'Cdiff' ]
-	detail_log.info ( '\t'.join ( header ) )
 	# 世代ごとの処理準備
 	g_max = 100 if is_test else 3000
 	best_gen = 0 ; best_ind = gToolbox.clone ( tools.selBest ( pop, 1 )[ 0 ] )
+	# detail_logに統計値を保存
+	write_detail_body ( pop, best_ind, best_gen, seed, 0, no_cam )
 	# ゼロ世代目の評価は終わっているので1世代目から始める
 	for g in range ( 1, g_max ) :
 		pop = do_generation ( pop )
@@ -140,47 +217,40 @@ def do_loop ( seed, population_sz, is_test, no_cam ) :
 		if tbest_ind.fitness.values[0] < best_ind.fitness.values[0] :
 			best_ind = gToolbox.clone ( tbest_ind )
 			best_gen = g
-		# 統計値計算
-		fits = np.array ( [ ind.fitness.values[0] for ind in pop ] )
-		row = [ seed, g, best_ind.fitness.values[0], best_gen, fits.min(), fits.max(), fits.mean(), fits.std() ]
-		if no_cam : pass
-		else :
-			clist = schedule.getClusterList ( pop )
-			row += clist + [ max(clist)-min(clist) ]
-		detail_log.info ( '\t'.join ( [ str(x) for x in row ] ) )
+		# detail_logに統計値を保存
+		write_detail_body ( pop, best_ind, best_gen, seed, g, no_cam )
+	# report_logに結果を記録
+	write_report_body ( seed, best_gen, best_ind.fitness.values[0], best_ind )
 	# finally
 	return best_gen, best_ind.fitness.values[0], best_ind
 
 def test ( seed, population_sz, loop, is_test, no_cam ) :
-	from logger import root_log, report_log
 	global gJmTable
+	# detail_log, report_logのヘッダ部書き出し
+	write_detail_header ( no_cam )
+	write_report_header()
+	# loopをマルチプロセッシングで実行
 	best_fits = [] ; best_inds = []
-	report_log.info ( '\t'.join ( ( 'seed', 'best_fit', 'best_gen', 'best_ind' ) ) )
-	for loop_idx in range ( loop ) :
-		random.seed ( seed + loop_idx )
-		# loop のメイン処理
-		best_gen, best_fit, best_ind = do_loop ( seed + loop_idx, population_sz, is_test, no_cam )
-		# finally
-		report_log.info ( '\t'.join ( ( '%d', '%d', '%d', '%s' ) )
-										% ( seed + loop_idx, best_fit, best_gen, best_ind.tolist() ) )
+	do_loop_arg_list = [ ( seed + loop_idx, population_sz, is_test, no_cam ) for loop_idx in range ( loop ) ]
+	results = list ( gToolbox.map ( do_loop, do_loop_arg_list ) )
+	for result in results :
+		_, best_fit, best_ind = result
 		best_fits.append ( best_fit )
 		best_inds.append ( best_ind )
-	# 全ループでのベスト個体を選出
-	bf = np.array ( best_fits )
-	root_log.info ( "Min:%s Max:%s Avg:%s Std:%s" % ( bf.min(),bf.max(),bf.mean(),bf.std() ) )
-	best_ind = best_inds [ np.argmin ( bf ) ]
-	root_log.info ( "Best individual: %s" % best_ind.tolist() )
-	root_log.info ( "\n"+"\n".join ( schedule.toStrAry( schedule.getGantt ( gJmTable, best_ind ), sep='' ) ) )
+	# 全ループでのベスト個体を記録
+	write_best_of_loop ( best_fits, best_inds )
+	# detail_log, report_logをソートする
+	sort_detail_log()
+	sort_report_log()
 
 def main2 ( args ) :
-	from logger import root_log
+	""" main処理その1の続き """
 	# 処理時間を計測しない
 	if args.do_perf == False :
 		test ( args.seed, args.population, args.loop, args.is_test, args.no_cam )
 	# 処理時間を計測する
 	else :
 		from line_profiler import LineProfiler
-		import io
 		prof = LineProfiler()
 		prof.add_function ( test )
 		prof.add_function ( test2 )
@@ -188,12 +258,11 @@ def main2 ( args ) :
 		prof.add_function ( schedule.getGantt )
 		# 計測開始
 		prof.runcall ( test, args.seed, args.population, args.loop, args.is_test, args.no_cam )
-		# write perflog to log
-		with io.StringIO() as bs :
-			prof.print_stats ( stream=bs, output_unit=0.001 )
-			root_log.info ( '\n' + bs.getvalue() )
+		# 計測結果をログに記録
+		write_line_profile ( prof )
 
 def main ( args ) :
+	""" main処理その1 """
 	global gToolbox, gJmTable
 	gToolbox, gJmTable = initialize ( args.is_test, args.no_cam )
 	np.set_printoptions ( linewidth=10000 )
@@ -203,7 +272,7 @@ def main ( args ) :
 	# multiprocessingする
 	else :
 		# このタイミングでforkする
-		with Pool() as pool :
+		with Pool ( args.processes ) as pool :
 			gToolbox.register ( "map", pool.map )
 			main2 ( args )
 
@@ -218,6 +287,8 @@ def parseArg() :
 	parser.add_argument ( '--population', default=100, type=int
 			, help='the number of individuals in one population.' + defint )
 	parser.add_argument ( '--loop', default=1, type=int, help='Loop count.' + defint )
+	parser.add_argument ( '--processes', default=os.cpu_count(), type=int
+						, help='The number of worker processes.' + defint )
 	# output
 	parser.add_argument ( '--logdir', default='./logs', type=lambda x: os.path.abspath ( x )
 						, help=u'ログ出力ディレクトリ' + defstr )

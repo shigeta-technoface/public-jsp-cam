@@ -28,6 +28,7 @@ The resulting three log files are in the logs directory.
 | seed | The number of random seed. | 0 | `--seed 0` |
 | population | The number of individuals in one population. | 100 | `--population 100` |
 | loop | Loop count. | 1 | `--loop 1` |
+| processes | The number of worker processes. | `os.cpu_count()`| `--processes 12` |
 | logdir | The directory name for log files. | logs | `--logdir ./logs` |
 | no\_mp | Use single processing. | Use multi processing. | `--no_mp` |
 | no\_cam | Use ordinal replacement. | Use CAM replacement. | `--no_cam` |
