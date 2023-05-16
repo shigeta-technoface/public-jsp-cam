@@ -1,0 +1,21 @@
+version: '3'
+services:
+  scheduler:
+    build:
+      context: .
+      args:
+        USER_ID: ${USER_ID}
+        USER_NAME: ${USER_NAME}
+        GROUP_ID: ${GROUP_ID}
+        GROUP_NAME: ${GROUP_NAME}
+    hostname: public-jsp-cam
+    image: public-jsp-cam-image:latest
+    container_name: public-jsp-cam 
+    user: ${USER_NAME}
+    volumes:
+      - .:/home/${USER_NAME}/public-jsp-cam
+    environment:
+      TZ: Asia/Tokyo
+    working_dir: /home/${USER_NAME}/public-jsp-cam
+    entrypoint: sleep
+    command: infinity

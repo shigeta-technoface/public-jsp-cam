@@ -8,15 +8,28 @@ This is an unofficial implementation of the [paper(in Japanese)](https://www.jst
 
 ## Requirement
 
-* deap 1.3.1
+* deap
 * line\_profiler (if need)
+* python3
 
 ## Usage
+
+### Quick Start(docker)
+
+	> git clone git@github.com:shigeta-technoface/public-jsp-cam.git
+	> cd public-jsp-cam
+	> make build
+	> make run
+	> make login
+	> (login to container )
+	> python main.py
+	> exit
 
 ### Quick Start
 
 	> git clone git@github.com:shigeta-technoface/public-jsp-cam.git
 	> cd public-jsp-cam
+	> pip install -r requirements.txt
 	> python main.py
 
 The resulting three log files are in the logs directory.
