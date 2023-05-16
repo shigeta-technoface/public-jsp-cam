@@ -10,6 +10,7 @@ run:
 	USER_ID=$(USER_ID) USER_NAME=$(USER_NAME) GROUP_ID=$(GROUP_ID) GROUP_NAME=$(GROUP_NAME) docker-compose up -d
 
 login:
-	#docker exec -ti public-jsp-cam /bin/bash -c "cd /root/public-jsp-cam"
 	docker exec -ti public-jsp-cam /bin/bash
+
+.PHONY: build run login
 
