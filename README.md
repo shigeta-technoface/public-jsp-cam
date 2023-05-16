@@ -8,10 +8,19 @@ This is an unofficial implementation of the [paper(in Japanese)](https://www.jst
 
 ## Requirement
 
-* deap 1.3.1
+* deap
 * line\_profiler (if need)
 
 ## Usage
+
+### Quick Start(docker)
+
+	> git clone git@github.com:shigeta-technoface/public-jsp-cam.git
+	> cd public-jsp-cam
+	> make build
+	> make run
+	> make login
+	> python main.py
 
 ### Quick Start
 
